@@ -229,13 +229,15 @@ def fmt(v):
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def top5_expenses(df):
-    cutoff = pd.Timestamp(datetime.now() - timedelta(days=30))
+    cutoff_str = (datetime.now() - timedelta(days=30)).isoformat()
+    dfc = df.copy()
+    dfc["created_at_str"] = dfc["created_at"].astype(str)
     mask = (
-        (df["type"] == "saida") &
-        (df["payment_method"] != "saque_dinheiro") &
-        (df["created_at"] >= cutoff)
+        (dfc["type"] == "saida") &
+        (dfc["payment_method"] != "saque_dinheiro") &
+        (dfc["created_at_str"] >= cutoff_str)
     )
-    recent = df[mask].copy()
+    recent = dfc[mask].copy()
     recent["val"] = recent.apply(
         lambda r: r["installment_value"] if r["payment_method"] == "credito_parcelado" else r["amount"],
         axis=1
@@ -393,10 +395,10 @@ def main():
             f_type = st.selectbox("Tipo", ["Todos", "Entradas", "Saídas"])
         with fc2:
             # Cartões usados nos últimos 30 dias
-            cutoff30 = pd.Timestamp(datetime.now() - timedelta(days=30))
+            cutoff30_str = (datetime.now() - timedelta(days=30)).isoformat()
             used_cards = df[
                 (df["payment_method"] == "credito_parcelado") &
-                (df["created_at"] >= cutoff30) &
+                (df["created_at"].astype(str) >= cutoff30_str) &
                 (df["card"].astype(str).str.strip() != "")
             ]["card"].unique().tolist()
             card_opts = ["Todos"] + [CARD_LABELS.get(c, c) for c in used_cards]
