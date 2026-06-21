@@ -229,7 +229,7 @@ def fmt(v):
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def top5_expenses(df):
-    cutoff = datetime.now() - timedelta(days=30)
+    cutoff = pd.Timestamp(datetime.now() - timedelta(days=30))
     mask = (
         (df["type"] == "saida") &
         (df["payment_method"] != "saque_dinheiro") &
@@ -393,7 +393,7 @@ def main():
             f_type = st.selectbox("Tipo", ["Todos", "Entradas", "Saídas"])
         with fc2:
             # Cartões usados nos últimos 30 dias
-            cutoff30 = datetime.now() - timedelta(days=30)
+            cutoff30 = pd.Timestamp(datetime.now() - timedelta(days=30))
             used_cards = df[
                 (df["payment_method"] == "credito_parcelado") &
                 (df["created_at"] >= cutoff30) &
