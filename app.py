@@ -325,7 +325,8 @@ def main():
                 else:
                     method_opts = ["pix", "dinheiro_vivo", "saque_dinheiro", "credito_parcelado"]
                 tx_method = st.selectbox("Método", method_opts,
-                    format_func=lambda x: METHOD_LABELS.get(x, x))
+                    format_func=lambda x: METHOD_LABELS.get(x, x),
+                    key=f"method_{tx_type}")
 
             col3, col4 = st.columns(2)
             with col3:
