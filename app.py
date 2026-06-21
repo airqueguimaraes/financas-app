@@ -313,76 +313,77 @@ def main():
 
     # ── FORMULÁRIO
     st.markdown("<h2>Nova Transação</h2>", unsafe_allow_html=True)
-    with st.container():
-        with st.form("tx_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                tx_type = st.selectbox("Tipo", ["entrada", "saida"],
-                    format_func=lambda x: "Entrada" if x == "entrada" else "Saída")
-            with col2:
-                if tx_type == "entrada":
-                    method_opts = ["pix_conta", "dinheiro_vivo"]
-                else:
-                    method_opts = ["pix", "dinheiro_vivo", "saque_dinheiro", "credito_parcelado"]
-                tx_method = st.selectbox("Método", method_opts,
-                    format_func=lambda x: METHOD_LABELS.get(x, x),
-                    key=f"method_{tx_type}")
 
-            col3, col4 = st.columns(2)
-            with col3:
-                default_desc = "Saque dinheiro" if tx_method == "saque_dinheiro" else ""
-                tx_desc = st.text_input("Descrição", value=default_desc, placeholder="Ex: Salário")
-            with col4:
-                tx_amount = st.number_input("Valor (R$)", min_value=0.01, step=0.01, format="%.2f")
+    # Tipo FORA do form para atualizar Método em tempo real
+    tx_type = st.selectbox("Tipo", ["entrada", "saida"],
+        format_func=lambda x: "Entrada" if x == "entrada" else "Saída",
+        key="tx_type_select")
 
-            # Campos extras para crédito parcelado
-            tx_installments = 1
-            tx_card = None
-            tx_is_for_someone = False
-            tx_bought_by = ""
+    if tx_type == "entrada":
+        method_opts = ["pix_conta", "dinheiro_vivo"]
+    else:
+        method_opts = ["pix", "dinheiro_vivo", "saque_dinheiro", "credito_parcelado"]
 
-            if tx_method == "credito_parcelado":
-                col5, col6 = st.columns(2)
-                with col5:
-                    tx_installments = st.number_input("Parcelas", min_value=2, max_value=48, value=2, step=1)
-                with col6:
-                    installment_val = tx_amount / tx_installments if tx_installments > 0 else 0
-                    st.markdown(f"""
-                    <div style="margin-top:28px;background:#1e293b;border:1px solid #334155;
-                    border-radius:8px;padding:9px 14px;color:#f1f5f9;font-size:15px;">
-                        {fmt(installment_val)} / parcela
-                    </div>""", unsafe_allow_html=True)
+    tx_method = st.selectbox("Método", method_opts,
+        format_func=lambda x: METHOD_LABELS.get(x, x),
+        key=f"method_{tx_type}")
 
-                tx_card = st.selectbox("Cartão", list(CARD_LABELS.keys()),
-                    format_func=lambda x: CARD_LABELS.get(x, x))
+    with st.form("tx_form", clear_on_submit=True):
+        col3, col4 = st.columns(2)
+        with col3:
+            default_desc = "Saque dinheiro" if tx_method == "saque_dinheiro" else ""
+            tx_desc = st.text_input("Descrição", value=default_desc, placeholder="Ex: Salário")
+        with col4:
+            tx_amount = st.number_input("Valor (R$)", min_value=0.01, step=0.01, format="%.2f")
 
-                tx_is_for_someone = st.checkbox("🛍️ Compra de alguém")
-                if tx_is_for_someone:
-                    tx_bought_by = st.text_input("Quem comprou?", placeholder="Ex: João")
+        # Campos extras para crédito parcelado
+        tx_installments = 1
+        tx_card = None
+        tx_is_for_someone = False
+        tx_bought_by = ""
 
-            submitted = st.form_submit_button("➕ Adicionar transação")
+        if tx_method == "credito_parcelado":
+            col5, col6 = st.columns(2)
+            with col5:
+                tx_installments = st.number_input("Parcelas", min_value=2, max_value=48, value=2, step=1)
+            with col6:
+                installment_val = tx_amount / tx_installments if tx_installments > 0 else 0
+                st.markdown(f"""
+                <div style="margin-top:28px;background:#1e293b;border:1px solid #334155;
+                border-radius:8px;padding:9px 14px;color:#f1f5f9;font-size:15px;">
+                    {fmt(installment_val)} / parcela
+                </div>""", unsafe_allow_html=True)
 
-            if submitted:
-                if not tx_desc.strip():
-                    st.error("Preencha a descrição.")
-                else:
-                    installment_value = (tx_amount / tx_installments
-                                         if tx_method == "credito_parcelado" else tx_amount)
-                    save_transaction(sheet, {
-                        "type": tx_type,
-                        "payment_method": tx_method,
-                        "amount": tx_amount,
-                        "installments": tx_installments,
-                        "installment_value": installment_value,
-                        "description": tx_desc.strip(),
-                        "created_at": datetime.now().isoformat(),
-                        "card": tx_card or "",
-                        "is_for_someone": tx_is_for_someone,
-                        "bought_by": tx_bought_by.strip() if tx_is_for_someone else "",
-                    })
-                    st.success("Transação adicionada! ✅")
-                    st.cache_resource.clear()
-                    st.rerun()
+            tx_card = st.selectbox("Cartão", list(CARD_LABELS.keys()),
+                format_func=lambda x: CARD_LABELS.get(x, x))
+
+            tx_is_for_someone = st.checkbox("🛍️ Compra de alguém")
+            if tx_is_for_someone:
+                tx_bought_by = st.text_input("Quem comprou?", placeholder="Ex: João")
+
+        submitted = st.form_submit_button("➕ Adicionar transação", use_container_width=True)
+
+        if submitted:
+            if not tx_desc.strip():
+                st.error("Preencha a descrição.")
+            else:
+                installment_value = (tx_amount / tx_installments
+                                     if tx_method == "credito_parcelado" else tx_amount)
+                save_transaction(sheet, {
+                    "type": tx_type,
+                    "payment_method": tx_method,
+                    "amount": tx_amount,
+                    "installments": tx_installments,
+                    "installment_value": installment_value,
+                    "description": tx_desc.strip(),
+                    "created_at": datetime.now().isoformat(),
+                    "card": tx_card or "",
+                    "is_for_someone": tx_is_for_someone,
+                    "bought_by": tx_bought_by.strip() if tx_is_for_someone else "",
+                })
+                st.success("Transação adicionada! ✅")
+                st.cache_resource.clear()
+                st.rerun()
 
     st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
